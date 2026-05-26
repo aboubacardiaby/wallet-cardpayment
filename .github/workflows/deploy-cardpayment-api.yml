@@ -18,7 +18,7 @@ env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: ${{ vars.GCP_REGION || 'us-central1' }}
   SERVICE_NAME: card-payment-api
-  ARTIFACT_REGISTRY: ${{ vars.GCP_ARTIFACT_REGISTRY || 'docker-registry' }}
+  ARTIFACT_REGISTRY: ${{ vars.GCP_ARTIFACT_REGISTRY || 'cardpayment' }}
 
 jobs:
   build:
@@ -70,9 +70,8 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
-
-      - name: Set GCP Project
-        run: gcloud config set project ${{ env.PROJECT_ID }}
+        with:
+          project_id: ${{ env.PROJECT_ID }}
 
       - name: Configure Docker for Artifact Registry
         run: |
