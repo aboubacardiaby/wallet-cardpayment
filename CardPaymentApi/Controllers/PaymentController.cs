@@ -95,6 +95,59 @@ public class PaymentController : ControllerBase
     }
 
     /// <summary>
+    /// Creates a SetupIntent to save a card for future payments.
+    /// </summary>
+    [HttpPost("setup-intent")]
+    [ProducesResponseType(typeof(SetupIntentResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateSetupIntent([FromBody] CreateSetupIntentRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.CustomerId))
+            return BadRequest(new { error = "CustomerId is required." });
+
+        var result = await _paymentService.CreateSetupIntentAsync(request);
+        return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    /// <summary>
+    /// Confirms a SetupIntent to save the payment method to the customer.
+    /// </summary>
+    [HttpPost("setup-intent/confirm")]
+    [ProducesResponseType(typeof(SetupIntentResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ConfirmSetupIntent([FromBody] ConfirmSetupIntentRequest request)
+    {
+        var result = await _paymentService.ConfirmSetupIntentAsync(request);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Creates a PaymentMethod from card details. Can optionally attach to a customer.
+    /// </summary>
+    [HttpPost("payment-method")]
+    [ProducesResponseType(typeof(PaymentMethodResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreatePaymentMethod([FromBody] CreatePaymentMethodRequest request)
+    {
+        if (request.Card == null)
+            return BadRequest(new { error = "Card details are required." });
+
+        var result = await _paymentService.CreatePaymentMethodAsync(request);
+        return StatusCode(StatusCodes.Status201Created, result);
+    }
+
+    /// <summary>
+    /// Gets all saved payment methods for a customer.
+    /// </summary>
+    [HttpGet("customer/{customerId}/payment-methods")]
+    [ProducesResponseType(typeof(CustomerPaymentMethodsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCustomerPaymentMethods(string customerId)
+    {
+        var result = await _paymentService.GetCustomerPaymentMethodsAsync(customerId);
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Stripe webhook endpoint — receives and processes events (payment_intent.succeeded, etc.).
     /// Configure the endpoint URL in the Stripe Dashboard and set Stripe:WebhookSecret in config.
     /// </summary>

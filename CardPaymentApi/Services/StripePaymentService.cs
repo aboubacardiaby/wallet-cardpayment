@@ -8,6 +8,8 @@ public class StripePaymentService : IStripePaymentService
     private readonly PaymentIntentService _paymentIntentService;
     private readonly CustomerService _customerService;
     private readonly RefundService _refundService;
+    private readonly SetupIntentService _setupIntentService;
+    private readonly PaymentMethodService _paymentMethodService;
 
     public StripePaymentService(IConfiguration configuration)
     {
@@ -19,6 +21,8 @@ public class StripePaymentService : IStripePaymentService
         _paymentIntentService = new PaymentIntentService();
         _customerService = new CustomerService();
         _refundService = new RefundService();
+        _setupIntentService = new SetupIntentService();
+        _paymentMethodService = new PaymentMethodService();
     }
 
     public async Task<PaymentIntentResponse> CreatePaymentIntentAsync(CreatePaymentIntentRequest request)
@@ -124,5 +128,104 @@ public class StripePaymentService : IStripePaymentService
         Amount = intent.Amount,
         Currency = intent.Currency,
         CustomerId = intent.CustomerId,
+    };
+
+    public async Task<SetupIntentResponse> CreateSetupIntentAsync(CreateSetupIntentRequest request)
+    {
+        var options = new SetupIntentCreateOptions
+        {
+            Customer = request.CustomerId,
+            PaymentMethodTypes = ["card"],
+        };
+
+        var setupIntent = await _setupIntentService.CreateAsync(options);
+
+        return new SetupIntentResponse
+        {
+            Id = setupIntent.Id,
+            ClientSecret = setupIntent.ClientSecret,
+            Status = setupIntent.Status,
+            CustomerId = setupIntent.CustomerId,
+            PaymentMethodId = setupIntent.PaymentMethodId,
+        };
+    }
+
+    public async Task<SetupIntentResponse> ConfirmSetupIntentAsync(ConfirmSetupIntentRequest request)
+    {
+        var options = new SetupIntentConfirmOptions
+        {
+            PaymentMethod = request.PaymentMethodId,
+        };
+
+        var setupIntent = await _setupIntentService.ConfirmAsync(request.SetupIntentId, options);
+
+        return new SetupIntentResponse
+        {
+            Id = setupIntent.Id,
+            ClientSecret = setupIntent.ClientSecret,
+            Status = setupIntent.Status,
+            CustomerId = setupIntent.CustomerId,
+            PaymentMethodId = setupIntent.PaymentMethodId,
+        };
+    }
+
+    public async Task<PaymentMethodResponse> CreatePaymentMethodAsync(CreatePaymentMethodRequest request)
+    {
+        var options = new PaymentMethodCreateOptions
+        {
+            Type = "card",
+            Card = new PaymentMethodCardOptions
+            {
+                Number = request.Card.Number,
+                ExpMonth = request.Card.ExpMonth,
+                ExpYear = request.Card.ExpYear,
+                Cvc = request.Card.Cvc,
+            },
+        };
+
+        var paymentMethod = await _paymentMethodService.CreateAsync(options);
+
+        // Attach to customer if specified
+        if (!string.IsNullOrEmpty(request.CustomerId))
+        {
+            var attachOptions = new PaymentMethodAttachOptions
+            {
+                Customer = request.CustomerId,
+            };
+            paymentMethod = await _paymentMethodService.AttachAsync(paymentMethod.Id, attachOptions);
+        }
+
+        return MapToPaymentMethodResponse(paymentMethod);
+    }
+
+    public async Task<CustomerPaymentMethodsResponse> GetCustomerPaymentMethodsAsync(string customerId)
+    {
+        var options = new PaymentMethodListOptions
+        {
+            Customer = customerId,
+            Type = "card",
+        };
+
+        var paymentMethods = await _paymentMethodService.ListAsync(options);
+
+        return new CustomerPaymentMethodsResponse
+        {
+            CustomerId = customerId,
+            PaymentMethods = paymentMethods.Data.Select(MapToPaymentMethodResponse).ToList(),
+        };
+    }
+
+    private static PaymentMethodResponse MapToPaymentMethodResponse(PaymentMethod pm) => new()
+    {
+        Id = pm.Id,
+        Type = pm.Type,
+        CustomerId = pm.CustomerId,
+        Card = new Models.CardInfo
+        {
+            Brand = pm.Card.Brand,
+            Last4 = pm.Card.Last4,
+            ExpMonth = (int)pm.Card.ExpMonth,
+            ExpYear = (int)pm.Card.ExpYear,
+        },
     };
 }

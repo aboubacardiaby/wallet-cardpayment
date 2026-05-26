@@ -3,7 +3,13 @@
     "allow": [
       "PowerShell(Get-ChildItem \"C:\\\\Users\\\\AbouDiaby\\\\Desktop\\\\repos\\\\wallet\\\\card_api\\\\CardPaymentApi\" -Recurse | Where-Object { -not $_.PSIsContainer } | Select-Object FullName)",
       "Bash(find \"/mnt/c/Users/AbouDiaby/Desktop/repos/wallet/card_api/CardPaymentApi\" -type f 2>/dev/null)",
-      "PowerShell(cmd /c \"dir /s /b C:\\\\Users\\\\AbouDiaby\\\\Desktop\\\\repos\\\\wallet\\\\card_api\\\\CardPaymentApi\")"
+      "PowerShell(cmd /c \"dir /s /b C:\\\\Users\\\\AbouDiaby\\\\Desktop\\\\repos\\\\wallet\\\\card_api\\\\CardPaymentApi\")",
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet run:*)",
+      "Bash(tree:*)",
+      "Bash(curl:*)",
+      "Bash(ping:*)"
     ]
   }
 }
