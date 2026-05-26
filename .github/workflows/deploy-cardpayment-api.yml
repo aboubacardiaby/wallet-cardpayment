@@ -90,13 +90,13 @@ jobs:
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}:latest
 
       - name: Deploy to Cloud Run
+        id: deploy
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}
           region: ${{ env.REGION }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
           flags: |
-            --allow-unauthenticated
             --port=8080
             --memory=512Mi
             --cpu=1
@@ -104,10 +104,13 @@ jobs:
             --max-instances=10
           env_vars: |
             ASPNETCORE_ENVIRONMENT=Production
-          secrets: |
-            Stripe__SecretKey=stripe-secret-key:latest
-            Stripe__PublishableKey=stripe-publishable-key:latest
-            Stripe__WebhookSecret=stripe-webhook-secret:latest
+
+      - name: Allow unauthenticated access
+        run: |
+          gcloud run services add-iam-policy-binding ${{ env.SERVICE_NAME }} \
+            --region=${{ env.REGION }} \
+            --member="allUsers" \
+            --role="roles/run.invoker" || true
 
       - name: Output Service URL
         run: |
